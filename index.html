@@ -1,342 +1,1470 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NocturnLabs V2</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <style>
-    body, html {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      width: 100%;
-      height: 100%;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      color: white;
-      background-color: #000015;
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Nocturne Labs — Music Tools for Night Creators</title>
+
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=DM+Sans:wght@400;700&display=swap" rel="stylesheet">
+
+<!-- Three.js for background -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<style>
+  /* Design intent:
+     - dark theme by default
+     - high-value (bright) colors for text for contrast/readability
+     - mid-to-low value for frames, cards, backgrounds
+     - modern glassy UI, responsive grid, subtle motion
+  */
+
+  :root{
+    /* High-value gamut text colors (bright, slightly tinted) */
+    --text-primary: hsl(190 100% 92%); /* pale cyan */
+    --text-secondary: hsl(210 90% 80%); /* soft sky */
+    --muted: hsl(220 20% 60%);
+
+    /* Accents (bright, vivid) */
+    --accent-1: hsl(270 90% 66%); /* bright violet-ish */
+    --accent-2: hsl(190 90% 60%); /* vivid cyan */
+    --accent-3: hsl(40 95% 68%);  /* warm gold */
+
+    /* Backgrounds/frames - mid to low value */
+    --bg: hsl(230 40% 6%);        /* deep indigo/near-black */
+    --panel: hsl(235 30% 12%);    /* mid-low for cards */
+    --elev: hsl(235 30% 9%);      /* shadows / underlay */
+    --glass: rgba(255,255,255,0.02);
+    --glass-2: rgba(255,255,255,0.03);
+
+    /* Borders, separators */
+    --line: rgba(255,255,255,0.04);
+
+    /* Depth/shadow */
+    --shadow-1: 0 6px 24px rgba(0,0,0,0.65);
+    --shadow-2: 0 10px 40px rgba(0,0,0,0.70);
+
+    /* UI sizing */
+    --radius: 14px;
+    --soft-radius: 8px;
+    --glass-padding: 18px;
+  }
+
+  /* Layout + base */
+  html,body{
+    height:100%;
+    margin:0;
+    background: radial-gradient(1200px 600px at 10% 20%, rgba(120,80,255,0.06), transparent 6%),
+                radial-gradient(1000px 500px at 90% 80%, rgba(0,220,255,0.03), transparent 6%),
+                var(--bg);
+    color:var(--text-primary);
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    line-height:1.45;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Aurora animation styles */
+  @keyframes aurora-glow {
+    0%, 100% {
+      text-shadow: 0 0 40px rgba(0, 200, 200, 0.5);
+    }
+    50% {
+      text-shadow: 0 0 60px rgba(0, 255, 153, 0.7);
+    }
+  }
+
+  @keyframes sparkle {
+    0%, 100% {
+      opacity: 0.7;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  /* BACKGROUND ANIMATION CONTAINER */
+  #aurora-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .app {
+    position: relative;
+    z-index: 1;
+    max-width:1200px;
+    margin:28px auto;
+    padding:20px;
+    display:grid;
+    grid-template-columns: 260px 1fr;
+    gap:20px;
+    align-items:start;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    position:sticky;
+    top:20px;
+    height:calc(100vh - 40px);
+    padding:18px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-1);
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+
+  .brand {
+    display:flex;
+    gap:12px;
+    align-items:center;
+  }
+
+  .logo {
+    width:52px;
+    height:52px;
+    border-radius:12px;
+    background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    box-shadow: 0 6px 18px rgba(60,0,120,0.35), inset 0 -6px 18px rgba(255,255,255,0.04);
+    flex-shrink:0;
+    font-weight:800;
+    color:var(--bg);
+    font-family: "DM Sans", sans-serif;
+  }
+
+  .brand h1{
+    margin:0;
+    font-size:16px;
+    line-height:1;
+    letter-spacing: -0.01em;
+    color:var(--text-primary);
+  }
+  .brand p { margin:0; font-size:12px; color:var(--text-secondary); opacity:0.9; }
+
+  nav.side-nav {
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    margin-top:8px;
+  }
+
+  .nav-item {
+    display:flex;
+    gap:10px;
+    align-items:center;
+    padding:10px 12px;
+    border-radius:10px;
+    color:var(--text-secondary);
+    text-decoration:none;
+    font-weight:600;
+    font-size:14px;
+    transition:all 220ms cubic-bezier(.2,.9,.2,1);
+    border:1px solid transparent;
+  }
+
+  .nav-item:hover { transform:translateX(4px); color:var(--text-primary); }
+  .nav-item.active {
+    color:var(--bg);
+    background: linear-gradient(90deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .nav-icon {
+    width:36px;height:36px;border-radius:8px;
+    display:inline-grid;place-items:center;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border:1px solid var(--line);
+    color:var(--text-primary);
+    font-weight:700;
+  }
+
+  .sidebar .controls {
+    margin-top:auto;
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+
+  /* main area */
+  .main {
+    min-height:80vh;
+  }
+
+  header.top {
+    display:flex;
+    gap:12px;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:20px;
+  }
+
+  .search {
+    display:flex;
+    gap:10px;
+    align-items:center;
+    background:var(--glass);
+    border-radius:999px;
+    padding:10px 12px;
+    border:1px solid var(--line);
+    width: min(640px, 60%);
+  }
+  .search input {
+    background:transparent;border:0;outline:0;color:var(--text-primary);
+    font-size:14px;width:100%;
+  }
+  .controls-right {
+    display:flex;
+    gap:10px;
+    align-items:center;
+  }
+
+  .btn {
+    display:inline-flex;
+    gap:8px;
+    align-items:center;
+    padding:10px 14px;
+    border-radius:12px;
+    font-weight:700;
+    border:1px solid rgba(255,255,255,0.05);
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+    cursor:pointer;
+  }
+  .btn.primary {
+    background: linear-gradient(90deg, var(--accent-2), var(--accent-1));
+    color:var(--bg);
+    box-shadow: 0 8px 26px rgba(40,120,255,0.18), inset 0 -6px 18px rgba(255,255,255,0.06);
+    border: none;
+  }
+
+  /* Hero */
+  .hero {
+    display:grid;
+    grid-template-columns: 1fr 420px;
+    gap:22px;
+    align-items:center;
+    padding:22px;
+    border-radius: var(--radius);
+    background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.02));
+    border:1px solid var(--line);
+    box-shadow: var(--shadow-1);
+  }
+
+  .hero h2 {
+    margin:0 0 10px 0;
+    font-size:32px;
+    font-weight:800;
+    letter-spacing:-0.02em;
+    color:var(--text-primary);
+  }
+  .hero p.lead {
+    margin:0 0 18px 0;
+    color:var(--text-secondary);
+    font-size:15px;
+    max-width:56ch;
+  }
+
+  .hero .features {
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:12px;
+  }
+  .chip {
+    padding:8px 12px;
+    border-radius:999px;
+    font-weight:600;
+    font-size:13px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border: 1px solid var(--line);
+    color:var(--text-secondary);
+  }
+
+  .hero-side {
+    padding:18px;
+    border-radius:12px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border:1px solid var(--line);
+  }
+
+  /* Reviews */
+  .reviews {
+    margin-top:18px;
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap:12px;
+  }
+
+  .card {
+    background: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01));
+    border-radius:12px;
+    padding:14px;
+    border:1px solid var(--line);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+  }
+
+  .rev-head { display:flex; gap:12px; align-items:center; }
+  .avatar { width:48px;height:48px;border-radius:10px;background:linear-gradient(90deg,var(--accent-1),var(--accent-2)); display:grid;place-items:center;font-weight:800;color:var(--bg); }
+
+  .stars { color: var(--accent-3); font-weight:800; }
+
+  /* App embeds / canvas */
+  .embed {
+    height:320px;
+    border-radius:10px;
+    overflow:hidden;
+    border:1px solid var(--line);
+    background:
+      linear-gradient(180deg, rgba(0,0,0,0.35), rgba(0,0,0,0.5));
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:var(--text-secondary);
+  }
+
+  .embed small { display:block; color:var(--text-secondary); opacity:0.9; }
+
+  /* Forms */
+  .form-row { display:flex; gap:10px; margin-top:8px; }
+  .input, textarea {
+    width:100%;
+    background:transparent;
+    border:1px solid var(--line);
+    padding:10px 12px;
+    border-radius:10px;
+    color:var(--text-primary);
+    outline:none;
+    resize:vertical;
+    min-height:44px;
+  }
+
+  /* page container */
+  .page {
+    display:none;
+    animation: fadeIn .28s ease both;
+  }
+  .page.active { display:block; }
+
+  @keyframes fadeIn {
+    from { opacity:0; transform: translateY(6px); }
+    to { opacity:1; transform: translateY(0); }
+  }
+
+  /* album cover grid */
+  .covers {
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px,1fr));
+    gap:14px;
+    margin-top:12px;
+  }
+
+  .cover {
+    background: linear-gradient(135deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    height:160px;
+    border-radius:12px;
+    border:1px solid var(--line);
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-end;
+    padding:12px;
+  }
+
+  .cover h3 { margin:0; font-size:14px; color:var(--text-primary); }
+  .cover p { margin:6px 0 0 0; font-size:12px; color:var(--text-secondary); }
+
+  /* lyrics editor */
+  .editor {
+    min-height:220px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.02));
+    border-radius:10px;
+    padding:12px;
+    border:1px solid var(--line);
+    color:var(--text-primary);
+  }
+
+  footer.site-footer {
+    margin-top:30px;
+    color:var(--text-secondary);
+    font-size:13px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+  }
+
+  /* small responsive */
+  @media (max-width:980px){
+    .app { grid-template-columns: 1fr; padding:14px; }
+    .sidebar { position:relative; height:auto; order:2; }
+    .main { order:1; }
+    .hero { grid-template-columns: 1fr; }
+    .reviews { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width:640px){
+    .reviews { grid-template-columns: 1fr; }
+    .hero h2{ font-size:22px; }
+    .brand h1{ font-size:14px; }
+    .search { display:none; }
+  }
+
+  /* micro interactions */
+  a.linkish { color:var(--accent-2); text-decoration:underline; }
+  .muted { color:var(--muted); font-size:13px; }
+  .badge {
+    display:inline-block;padding:6px 8px;border-radius:6px;font-weight:700;background:rgba(255,255,255,0.02);
+    border:1px solid var(--line);
+    color:var(--text-secondary);
+  }
+
+  /* subtle animated accent */
+  .pulse {
+    position:relative;
+    overflow:visible;
+  }
+  .pulse::after{
+    content:"";
+    position:absolute;
+    inset: -6px -6px auto auto;
+    width:8px;height:8px;border-radius:50%;
+    background: linear-gradient(90deg,var(--accent-2),var(--accent-1));
+    box-shadow: 0 6px 18px rgba(120,80,255,0.12);
+    animation: breathe 2.6s infinite;
+  }
+  @keyframes breathe {
+    0% { transform:scale(0.9); opacity:0.9; }
+    50% { transform:scale(1.6); opacity:0.5; }
+    100% { transform:scale(0.9); opacity:0.9; }
+  }
+
+</style>
+</head>
+  <!-- Aurora Background Canvas -->
+  <div id="aurora-canvas"></div>
+
+  <!-- Welcome animation container - will be removed after animation completes -->
+  <div id="welcome-root"></div>
+
+  <!-- Load React, ReactDOM, and Babel from CDN -->
+  <script src="https://unpkg.com/react@17/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Welcome Animation Component -->
+  <script type="text/babel">
+    function WelcomeAnimation() {
+      const [visible, setVisible] = React.useState(true);
+      
+      React.useEffect(() => {
+        // Check if animation has been shown this session
+        const hasSeenWelcome = sessionStorage.getItem('welcomeSeen') === 'true';
+        
+        if (hasSeenWelcome) {
+          // If already seen, remove component immediately
+          setVisible(false);
+          setTimeout(() => {
+            const rootElement = document.getElementById('welcome-root');
+            if (rootElement) {
+              ReactDOM.unmountComponentAtNode(rootElement);
+              rootElement.remove();
+            }
+          }, 0);
+          return;
+        }
+        
+        // Set flag that animation has been shown
+        sessionStorage.setItem('welcomeSeen', 'true');
+        
+        // Remove component after animation completes (2000ms)
+        const timer = setTimeout(() => {
+          setVisible(false);
+          setTimeout(() => {
+            const rootElement = document.getElementById('welcome-root');
+            if (rootElement) {
+              ReactDOM.unmountComponentAtNode(rootElement);
+              rootElement.remove();
+            }
+          }, 500); // Allow fade-out to complete
+        }, 2000);
+        
+        return () => clearTimeout(timer);
+      }, []);
+      
+      // If not visible, render nothing
+      if (!visible) return null;
+      
+      return (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: 'rgba(0, 0, 0, 0.85)',
+          zIndex: 9999,
+          opacity: 1,
+          transition: 'opacity 0.5s ease-out',
+          animation: 'fadeIn 0.5s ease-out forwards'
+        }}>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            {/* Logo SVG - inline for zero external dependencies */}
+            <div style={{
+              animation: 'scaleUp 1.5s ease-out forwards',
+              transform: 'scale(0.5)',
+              opacity: 0
+            }}>
+              <svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#6366F1" />
+                    <stop offset="100%" stopColor="#EC4899" />
+                  </linearGradient>
+                </defs>
+                <circle cx="60" cy="60" r="50" fill="none" stroke="url(#logoGradient)" strokeWidth="8" 
+                  strokeDasharray="314" strokeDashoffset="314" style={{animation: 'drawCircle 1s ease-out forwards 0.2s'}} />
+                <path d="M40,40 L40,80 M60,30 L60,90 M80,40 L80,80" stroke="url(#logoGradient)" strokeWidth="8" strokeLinecap="round"
+                  strokeDasharray="50" strokeDashoffset="50" style={{animation: 'drawLines 1s ease-out forwards 0.7s'}} />
+              </svg>
+            </div>
+            
+            {/* Text with staggered animation */}
+            <div style={{
+              marginTop: '20px',
+              fontFamily: 'Arial, sans-serif',
+              fontSize: '44px',
+              fontWeight: 'bold',
+              color: 'white',
+              textAlign: 'center',
+              opacity: 0,
+              animation: 'fadeUp 1s ease-out forwards 0.8s'
+            }}>
+              Welcome to NocturneLabsV2
+            </div>
+            
+            <div style={{
+              marginTop: '10px',
+              fontFamily: 'Arial, sans-serif',
+              fontSize: '46px',
+              color: 'rgba(255, 255, 255, 0.8)',
+              textAlign: 'center',
+              opacity: 0,
+              animation: 'fadeUp 1s ease-out forwards 1s'
+            }}>
+              The future of mobile music production
+            </div>
+          </div>
+        </div>
+      );
     }
     
-    /* Main site styles */
-    .site-container {
-      position: relative;
-      width: 100vw;
-      height: 100vh;
-      overflow: hidden;
-    }
-    
-    .background-canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 1;
-    }
-    
-    .content {
-      position: relative;
-      z-index: 2;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      padding: 2rem;
-      text-align: center;
-    }
-    
-    .logo {
-      font-size: 3.5rem;
-      font-weight: bold;
-      margin-bottom: 1rem;
-      background: linear-gradient(to right, #00ccff, #00ffaa);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-      animation: glow 3s infinite;
-    }
-    
-    .tagline {
-      font-size: 1.5rem;
-      margin-bottom: 2rem;
-      opacity: 0.9;
-    }
-    
-    .cta-buttons {
-      display: flex;
-      gap: 1rem;
-      margin-bottom: 2rem;
-    }
-    
-    .btn {
-      padding: 0.75rem 2rem;
-      border-radius: 4px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-    
-    .btn-primary {
-      background: linear-gradient(to right, #00ccff, #00ffaa);
-      color: #000;
-      border: none;
-    }
-    
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 20px rgba(0, 204, 204, 0.3);
-    }
-    
-    .btn-secondary {
-      background: transparent;
-      color: white;
-      border: 2px solid rgba(0, 204, 204, 0.7);
-    }
-    
-    .btn-secondary:hover {
-      background: rgba(0, 204, 204, 0.1);
-      transform: translateY(-2px);
-    }
-    
-    .features {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 2rem;
-      max-width: 1200px;
-    }
-    
-    .feature {
-      background: rgba(0, 0, 20, 0.5);
-      border: 1px solid rgba(0, 204, 204, 0.3);
-      border-radius: 8px;
-      padding: 1.5rem;
-      width: 300px;
-      backdrop-filter: blur(10px);
-    }
-    
-    .feature h3 {
-      color: #00ccff;
-      margin-top: 0;
-    }
-    
-    @keyframes glow {
-      0%, 100% {
-        text-shadow: 0 0 40px rgba(0, 200, 200, 0.5);
+    // Only render if we haven't seen the welcome animation this session
+    if (sessionStorage.getItem('welcomeSeen') !== 'false') {
+      ReactDOM.render(<WelcomeAnimation />, document.getElementById('welcome-root'));
+    } else {
+      // If already seen, remove the root element
+      const rootElement = document.getElementById('welcome-root');
+      if (rootElement) {
+        rootElement.remove();
       }
-      50% {
-        text-shadow: 0 0 60px rgba(0, 255, 153, 0.7);
+    }
+  </script>
+  
+  <!-- Animation keyframes -->
+  <style>
+    @keyframes fadeIn {
+      0% { opacity: 0; }
+      100% { opacity: 1; }
+    }
+    
+    @keyframes fadeUp {
+      0% { 
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      100% { 
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    @keyframes scaleUp {
+      0% { 
+        transform: scale(0.5);
+        opacity: 0;
+      }
+      100% { 
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+    
+    @keyframes drawCircle {
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+    
+    @keyframes drawLines {
+      to {
+        stroke-dashoffset: 0;
       }
     }
   </style>
-</head>
 <body>
-  <div class="site-container">
-    <div id="background-canvas" class="background-canvas"></div>
-    
-    <div class="content">
-      <h1 class="logo">NocturnLabs</h1>
-      <p class="tagline">Illuminating the digital night with innovative solutions</p>
-      
-      <div class="cta-buttons">
-        <button class="btn btn-primary">Explore Services</button>
-        <button class="btn btn-secondary">Learn More</button>
-      </div>
-      
-      <div class="features">
-        <div class="feature">
-          <h3>AI Solutions</h3>
-          <p>Cutting-edge artificial intelligence solutions tailored to your business needs.</p>
-        </div>
-        <div class="feature">
-          <h3>Web Development</h3>
-          <p>Modern, responsive web applications built with the latest technologies.</p>
-        </div>
-        <div class="feature">
-          <h3>Data Analytics</h3>
-          <p>Transform your data into actionable insights with our advanced analytics.</p>
+  <div class="app" role="application" aria-label="Nocturne Labs UI">
+
+    <!-- Sidebar -->
+    <aside class="sidebar" aria-label="Primary navigation">
+      <div class="brand" tabindex="0">
+        <div class="logo">NL</div>
+        <div>
+          <h1>Nocturne Labs</h1>
+          <p>Tools &amp; creative apps for night creators</p>
         </div>
       </div>
-    </div>
+
+      <nav class="side-nav" aria-label="Site pages">
+        <a href="#/" class="nav-item" data-target="home"><span class="nav-icon">🏠</span>Home</a>
+        <a href="#/dj" class="nav-item" data-target="dj"><span class="nav-icon">🎛️</span>DJ Mixer App</a>
+        <a href="#/seq" class="nav-item" data-target="sequencer"><span class="nav-icon">🔁</span>Music Sequencer App</a>
+        <a href="#/lyrics" class="nav-item" data-target="lyrics"><span class="nav-icon">✍️</span>Lyrics App</a>
+        <a href="#/cover" class="nav-item" data-target="cover"><span class="nav-icon">🖼️</span>Album Cover App</a>
+        <a href="#/stories" class="nav-item" data-target="stories"><span class="nav-icon">📣</span>Success Stories</a>
+        <a href="#/about" class="nav-item" data-target="about"><span class="nav-icon">ℹ️</span>About</a>
+        <a href="#/contact" class="nav-item" data-target="contact"><span class="nav-icon">✉️</span>Contact Us</a>
+      </nav>
+
+      <div class="controls">
+        <button class="btn primary pulse" id="get-started-btn" title="Launch your first track">Launch Studio</button>
+        <button class="btn" id="theme-toggle" aria-pressed="false" title="Toggle theme">🌙 Theme</button>
+      </div>
+
+      <div style="font-size:12px;color:var(--text-secondary);margin-top:14px">
+        <div class="muted">Address</div>
+        <div>Nocturne Labs • 42 Nightmarket Ave • Virtual City</div>
+        <div class="muted" style="margin-top:8px">Support</div>
+        <div><a href="#/contact" class="linkish">help@nocturnelabs.example</a></div>
+      </div>
+    </aside>
+
+    <!-- Main content area -->
+    <main class="main" id="main" tabindex="-1">
+      <header class="top" role="banner">
+        <div style="display:flex;align-items:center;gap:14px">
+          <div class="badge">Studio v2.3</div>
+          <div class="muted">Create, mix & finish — in-browser workflows</div>
+        </div>
+
+        <div class="controls-right">
+          <div class="search" role="search" aria-label="Site search">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden><path stroke="rgba(255,255,255,0.5)" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-4.35-4.35"></path><circle cx="11" cy="11" r="6" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></circle></svg>
+            <input placeholder="Search apps, presets, success stories..." aria-label="Search" />
+          </div>
+          <button class="btn" title="Sign in (demo)">Sign in</button>
+        </div>
+      </header>
+
+      <!-- Page: Home -->
+      <section id="home" class="page active" aria-labelledby="home-title">
+        <div class="hero" role="region" aria-labelledby="home-title">
+          <div>
+            <h2 id="home-title">Make the night your instrument — fast, focused, beautiful.</h2>
+            <p class="lead">Nocturne Labs makes creative music tools that feel like instruments. Mix tracks live, sequence patterns, draft lyrics, and design album covers — all in the browser with low latency and tasteful UI crafted for flow.</p>
+
+            <div class="features" aria-hidden>
+              <span class="chip">Low-latency I/O</span>
+              <span class="chip">Reusable presets</span>
+              <span class="chip">Embeddable apps</span>
+              <span class="chip">Offline-friendly</span>
+              <span class="chip">Accessible controls</span>
+            </div>
+
+            <div style="display:flex;gap:10px;margin-top:18px;">
+              <button class="btn primary" onclick="navigateTo('dj')">Open DJ Mixer</button>
+              <button class="btn" onclick="navigateTo('sequencer')">Open Sequencer</button>
+            </div>
+
+            <div style="margin-top:18px;color:var(--text-secondary);font-size:14px">
+              <strong>For tastemakers:</strong> built for producers, live performers, and creators who prefer minimal friction and maximal sonic control.
+            </div>
+          </div>
+
+          <aside class="hero-side">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <div class="muted">Weekly active creators</div>
+                <div style="font-size:26px;font-weight:800;color:var(--text-primary);">12,486</div>
+              </div>
+              <div style="text-align:right">
+                <div class="muted">Avg session</div>
+                <div style="font-size:18px;font-weight:700;color:var(--text-secondary);">42m</div>
+              </div>
+            </div>
+
+            <div style="margin-top:14px">
+              <div class="muted">Featured preset</div>
+              <div style="margin-top:8px" class="card">
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                  <div>
+                    <div style="font-weight:800">Midnight Drift</div>
+                    <div class="muted" style="font-size:13px">Ambient DJ + reverb-focused FX rack</div>
+                  </div>
+                  <div style="text-align:right">
+                    <div style="font-weight:800;color:var(--accent-2)">+12%</div>
+                    <div class="muted" style="font-size:12px">engagement</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top:12px;display:flex;gap:8px;align-items:center;">
+              <a class="linkish" href="#/stories">See success stories</a>
+              <span class="muted">•</span>
+              <a class="linkish" href="#/cover">Album cover examples</a>
+            </div>
+          </aside>
+        </div>
+
+        <section aria-labelledby="reviews-title" style="margin-top:18px">
+          <h3 id="reviews-title" style="margin:0 0 8px 0;color:var(--text-secondary)">What creators say</h3>
+          <div class="reviews" role="list">
+            <article class="card" role="listitem">
+              <div class="rev-head">
+                <div class="avatar">MA</div>
+                <div>
+                  <div style="font-weight:800;color:var(--text-primary)">Maya Alvarez</div>
+                  <div class="muted">Producer • LA</div>
+                </div>
+                <div style="margin-left:auto" class="stars">★★★★★</div>
+              </div>
+              <p style="margin-top:10px;color:var(--text-secondary)">I ported my live set to Nocturne Labs and the latency is negligible. The Mixer is intuitive and beautiful — gets out of my way so I can perform.</p>
+            </article>
+
+            <article class="card" role="listitem">
+              <div class="rev-head">
+                <div class="avatar">TR</div>
+                <div>
+                  <div style="font-weight:800;color:var(--text-primary)">Trey Rivers</div>
+                  <div class="muted">DJ • Berlin</div>
+                </div>
+                <div style="margin-left:auto" class="stars">★★★★★</div>
+              </div>
+              <p style="margin-top:10px;color:var(--text-secondary)">The sequencer's swing and pattern editor are incredibly tactile — perfect for making live edits while keeping the groove.</p>
+            </article>
+
+            <article class="card" role="listitem">
+              <div class="rev-head">
+                <div class="avatar">LK</div>
+                <div>
+                  <div style="font-weight:800;color:var(--text-primary)">Lina K.</div>
+                  <div class="muted">Singer-songwriter • Remote</div>
+                </div>
+                <div style="margin-left:auto" class="stars">★★★★☆</div>
+              </div>
+              <p style="margin-top:10px;color:var(--text-secondary)">Lyrics draft + album art generator helped me organize a release in under two afternoons.</p>
+            </article>
+          </div>
+        </section>
+
+        <section style="margin-top:18px">
+          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+            <div class="muted">Connect</div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <a href="https://twitter.example" class="btn" aria-label="Twitter"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22 5.8c-.6.3-1.3.5-2 .6.7-.4 1.3-1 1.6-1.7-.6.4-1.4.7-2.2.9C18 4.6 17 4 16 4c-1.8 0-3.2 1.6-3 3.3-2.5-.1-4.7-1.3-6.2-3.2-.8 1.3-.3 3 1.1 3.8-.5 0-1-.1-1.5-.4v.1c.1 1.6 1.2 3 2.8 3.3-.4.1-.8.1-1.2.1-.3 0-.6 0-.9-.1.6 2 2.3 3.3 4.3 3.3-1.6 1.3-3.6 2.1-5.8 2.1-.4 0-.8 0-1.2-.1 2 1.3 4.3 2 6.8 2 8.1 0 12.6-6.7 12.6-12.5v-.6c.8-.6 1.5-1.3 2-2.1z" stroke="rgba(255,255,255,0.6)"></path></svg></a>
+              <a href="https://instagram.example" class="btn" aria-label="Instagram">IG</a>
+              <a href="https://soundcloud.example" class="btn" aria-label="Soundcloud">SC</a>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <!-- DJ Mixer App page -->
+      <section id="dj" class="page" aria-labelledby="dj-title">
+        <h2 id="dj-title" style="margin-top:0;color:var(--text-primary)">DJ Mixer — Live performance & mixing</h2>
+
+        <div style="display:grid;grid-template-columns:1fr 360px;gap:16px">
+          <div>
+            <p class="muted">Embed your existing DJ Mixer app below. Replace the iframe <code>src</code> with your app URL (or drop your app into a container).</p>
+
+            <div class="card" style="margin-top:12px;">
+              <div style="font-weight:800;color:var(--text-primary)">Live Mixer</div>
+              <div class="muted" style="font-size:13px">Your app will automatically adapt to this container.</div>
+              <div style="margin-top:12px">
+                <!-- Placeholder embed. Replace src with your DJ Mixer app URL -->
+                <iframe id="dj-iframe" src="about:blank" title="DJ Mixer embed" class="embed" style="width:100%;height:420px;border:0;display:block;border-radius:10px;">
+                  <!-- For browsers that block iframes, show fallback -->
+                </iframe>
+                <div style="margin-top:10px;display:flex;gap:8px;">
+                  <button class="btn" onclick="document.getElementById('dj-iframe').src = 'about:blank'">Reset src</button>
+                  <button class="btn primary" onclick="alert('Replace the iframe src with your mixer app URL (e.g. https://your-mixer.example)')">How to embed</button>
+                </div>
+              </div>
+            </div>
+
+            <section style="margin-top:12px;">
+              <h4 style="margin:8px 0;color:var(--text-secondary)">Recommended embed settings</h4>
+              <ul style="color:var(--text-secondary);margin:0 0 8px 16px">
+                <li>Allow audio autoplay / media engagement</li>
+                <li>Use <code>iframe.allow='autoplay; microphone'</code> if your app needs mic input</li>
+                <li>Set a responsive height or use postMessage to resize</li>
+              </ul>
+            </section>
+          </div>
+
+          <aside>
+            <div class="card">
+              <div style="font-weight:800">Performance Tools</div>
+              <ul style="margin-top:8px;color:var(--text-secondary);padding-left:16px">
+                <li>Crossfader presets & recall</li>
+                <li>Real-time VU meters & analyzer</li>
+                <li>Cue points & loop recall</li>
+                <li>MIDI map export</li>
+              </ul>
+
+              <div style="margin-top:12px">
+                <div class="muted">Preset store</div>
+                <div style="display:flex;gap:8px;margin-top:8px">
+                  <div class="chip">Beatmatch Pro</div>
+                  <div class="chip">Ambient Wash</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card" style="margin-top:12px">
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="font-weight:800">Connect controller</div>
+                <div style="margin-left:auto" class="muted">MIDI / HID</div>
+              </div>
+              <div style="margin-top:8px;color:var(--text-secondary)">Nocturne Labs supports standard MIDI mapping and HID devices. You can map decks to your controller and save mappings per-user.</div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- Sequencer -->
+      <section id="sequencer" class="page" aria-labelledby="seq-title">
+        <h2 id="seq-title" style="margin-top:0;color:var(--text-primary)">Music Sequencer — Patterns & automation</h2>
+
+        <div style="display:grid;grid-template-columns:1fr 320px;gap:16px">
+          <div>
+            <p class="muted">Drop your Sequencer app into the left panel. The demo below shows a placeholder pattern grid.</p>
+
+            <div class="card" style="margin-top:12px;">
+              <div style="font-weight:800">Pattern Editor</div>
+              <div class="muted" style="font-size:13px">16-step grid, swing & velocity controls</div>
+
+              <div style="margin-top:12px">
+                <!-- Placeholder embed -->
+                <iframe id="seq-iframe" src="about:blank" title="Sequencer embed" class="embed" style="width:100%;height:360px;border:0;border-radius:10px;"></iframe>
+                <div style="margin-top:10px;display:flex;gap:8px;">
+                  <button class="btn" onclick="document.getElementById('seq-iframe').src = 'about:blank'">Reset</button>
+                  <button class="btn" onclick="alert('Replace iframe src with your sequencer app URL')">Embed tips</button>
+                </div>
+              </div>
+            </div>
+
+            <section style="margin-top:12px;">
+              <h4 style="margin:8px 0;color:var(--text-secondary)">Sequencer quickstart</h4>
+              <ol style="color:var(--text-secondary);margin:0 0 8px 18px">
+                <li>Create a pattern, adjust swing</li>
+                <li>Route outputs to Mixer (via WebAudio nodes)</li>
+                <li>Save patterns & export as WAV/loop</li>
+              </ol>
+            </section>
+          </div>
+
+          <aside>
+            <div class="card">
+              <div style="font-weight:800">Tips for embedding</div>
+              <div class="muted" style="margin-top:8px">Use <code>postMessage</code> to synchronize transport (play/stop) between apps. Expose a "transport:play" event to allow one-click sync with the Mixer.</div>
+            </div>
+
+            <div class="card" style="margin-top:12px">
+              <div style="font-weight:800">Export options</div>
+              <div style="margin-top:8px;color:var(--text-secondary)">WAV bounce, stems export (zip), and pattern JSON for sharing.</div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- Lyrics App -->
+      <section id="lyrics" class="page" aria-labelledby="lyrics-title">
+        <h2 id="lyrics-title" style="margin-top:0;color:var(--text-primary)">Lyrics Lab — Draft, rhyme, refine</h2>
+
+        <div style="display:grid;grid-template-columns:1fr 320px;gap:12px">
+          <div>
+            <p class="muted">A focused editor for drafting lyrics, finding rhymes, and structuring verses.</p>
+
+            <div class="card" style="margin-top:12px;">
+              <div style="font-weight:800">Editor</div>
+              <textarea id="lyrics-editor" class="editor" placeholder="Start writing — verses, hooks, bridges..." spellcheck="true"></textarea>
+              <div style="display:flex;gap:8px;margin-top:8px">
+                <button class="btn" onclick="autoSuggest()">Suggest rhymes</button>
+                <button class="btn" onclick="exportLyrics()">Export TXT</button>
+                <button class="btn primary" onclick="copyLyrics()">Copy</button>
+              </div>
+            </div>
+
+            <section style="margin-top:12px">
+              <h4 style="margin:8px 0;color:var(--text-secondary)">Tools</h4>
+              <ul style="color:var(--text-secondary);margin:0 0 8px 18px">
+                <li>Rhyme suggestions</li>
+                <li>Line-by-line syllable counter</li>
+                <li>Version history & snapshots</li>
+              </ul>
+            </section>
+          </div>
+
+          <aside>
+            <div class="card">
+              <div style="font-weight:800">Rhyme helper</div>
+              <div id="rhyme-box" style="margin-top:8px;color:var(--text-secondary)">Type a word above and click <strong>Suggest rhymes</strong>.</div>
+            </div>
+
+            <div class="card" style="margin-top:12px">
+              <div style="font-weight:800">Templates</div>
+              <div style="margin-top:8px;color:var(--text-secondary)">Verse / Pre-chorus / Hook templates ready to populate.</div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- Album cover app -->
+      <section id="cover" class="page" aria-labelledby="cover-title">
+        <h2 id="cover-title" style="margin-top:0;color:var(--text-primary)">Album Cover Designer</h2>
+
+        <p class="muted">Quick mockups and generative layout suggestions for album covers. Export to PNG/SVG-ready layouts.</p>
+
+        <div style="display:grid;grid-template-columns:1fr 320px;gap:12px;margin-top:12px">
+          <div>
+            <div style="display:flex;gap:12px;align-items:center">
+              <input id="cover-title" class="input" placeholder="Album title" />
+              <input id="cover-artist" class="input" placeholder="Artist" style="max-width:240px" />
+              <button class="btn" onclick="generateCovers()">Generate</button>
+            </div>
+
+            <div class="covers" id="covers-grid" style="margin-top:12px">
+              <!-- dynamic covers -->
+            </div>
+
+            <p style="margin-top:12px;color:var(--text-secondary)">Tip: use high-contrast title colors and large geometric shapes for streaming thumbnails.</p>
+          </div>
+
+          <aside>
+            <div class="card">
+              <div style="font-weight:800">Style presets</div>
+              <div style="margin-top:8px;color:var(--text-secondary)">
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                  <button class="chip" onclick="applyPreset('vaporwave')">Vaporwave</button>
+                  <button class="chip" onclick="applyPreset('minimal')">Minimal</button>
+                  <button class="chip" onclick="applyPreset('noir')">Noir</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="card" style="margin-top:12px">
+              <div style="font-weight:800">Export</div>
+              <div style="margin-top:8px;color:var(--text-secondary)">Export a cover at 3000×3000 px or scaled thumbnails for stores.</div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- Success Stories -->
+      <section id="stories" class="page" aria-labelledby="stories-title">
+        <h2 id="stories-title" style="margin-top:0;color:var(--text-primary)">Success Stories</h2>
+        <p class="muted">Real small-run releases launched with Nocturne Labs tools.</p>
+
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:12px">
+          <div class="card">
+            <div style="display:flex;gap:12px;align-items:center;">
+              <div style="width:72px;height:72px;border-radius:8px;background:linear-gradient(135deg,var(--accent-2),var(--accent-1));display:grid;place-items:center;font-weight:800;color:var(--bg)">G1</div>
+              <div>
+                <div style="font-weight:800;color:var(--text-primary)">Ghost Mode — EP</div>
+                <div class="muted">Released • 12k streams first week</div>
+              </div>
+            </div>
+            <p style="margin-top:10px;color:var(--text-secondary)">A 3-track EP created from scratch inside Nocturne Labs; artist mapped a controller and performed a live set that became the lead single.</p>
+          </div>
+
+          <div class="card">
+            <div style="display:flex;gap:12px;align-items:center;">
+              <div style="width:72px;height:72px;border-radius:8px;background:linear-gradient(135deg,var(--accent-3),var(--accent-1));display:grid;place-items:center;font-weight:800;color:var(--bg)">R2</div>
+              <div>
+                <div style="font-weight:800;color:var(--text-primary)">Rewired Tour • Visuals</div>
+                <div class="muted">Live visuals generated from sequencer patterns</div>
+              </div>
+            </div>
+            <p style="margin-top:10px;color:var(--text-secondary)">A touring DJ used the pattern output to power stage visuals — sync across devices using postMessage.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- About -->
+      <section id="about" class="page" aria-labelledby="about-title">
+        <h2 id="about-title" style="margin-top:0;color:var(--text-primary)">About Nocturne Labs</h2>
+        <p class="muted">We build lightweight music tools for people who make after dark. Founded 2020 by a small team of producers and engineers.</p>
+
+        <div style="display:grid;grid-template-columns:1fr 320px;gap:12px;margin-top:12px">
+          <div>
+            <div class="card">
+              <h4 style="margin:0 0 6px 0;color:var(--text-primary)">Our mission</h4>
+              <p class="muted">Make creative tools that prioritize flow: immediate feedback, deliberate defaults, and graceful fallbacks for low-bandwidth or offline use.</p>
+            </div>
+
+            <div style="margin-top:12px" class="card">
+              <h4 style="margin:0 0 6px 0;color:var(--text-primary)">Team</h4>
+              <ul style="color:var(--text-secondary);margin:0 0 0 16px">
+                <li>Nova — Product & design</li>
+                <li>Ezra — Core audio engine</li>
+                <li>Rin — UX & accessibility</li>
+                <li>Community contributors</li>
+              </ul>
+            </div>
+          </div>
+
+          <aside>
+            <div class="card">
+              <div style="font-weight:800">Privacy & hosting</div>
+              <div style="margin-top:8px;color:var(--text-secondary)">We keep minimal telemetry and provide offline-friendly bundles. You can self-host the embeddable apps for privacy-sensitive projects.</div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- Contact -->
+      <section id="contact" class="page" aria-labelledby="contact-title">
+        <h2 id="contact-title" style="margin-top:0;color:var(--text-primary)">Contact Us</h2>
+
+        <div style="display:grid;grid-template-columns:1fr 320px;gap:12px;margin-top:12px">
+          <div>
+            <form id="contact-form" class="card" onsubmit="submitContact(event)">
+              <div style="display:flex;gap:10px">
+                <input id="contact-name" class="input" placeholder="Your name" required />
+                <input id="contact-email" class="input" type="email" placeholder="Email" required />
+              </div>
+              <div style="margin-top:8px">
+                <input id="contact-subject" class="input" placeholder="Subject" />
+              </div>
+              <div style="margin-top:8px">
+                <textarea id="contact-message" class="editor" placeholder="Tell us about your project..." required></textarea>
+              </div>
+              <div style="display:flex;gap:8px;margin-top:8px">
+                <button class="btn primary" type="submit">Send message</button>
+                <button class="btn" type="button" onclick="document.getElementById('contact-form').reset()">Clear</button>
+              </div>
+            </form>
+          </div>
+
+          <aside>
+            <div class="card">
+              <div style="font-weight:800">Office hours</div>
+              <div style="margin-top:8px;color:var(--text-secondary)">Mon—Fri • 09:00 — 18:00 (UTC)</div>
+              <div style="margin-top:10px;color:var(--text-secondary)">Phone: +1 (555) 010-9999</div>
+              <div style="margin-top:10px"><a class="linkish" href="#/about">Learn more about us</a></div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <footer class="site-footer" role="contentinfo">
+        <div>© <strong>Nocturne Labs</strong> <span id="year"></span> — Crafted for nocturnal creators</div>
+        <div class="muted">Made with care • <a class="linkish" href="#/privacy">Privacy</a></div>
+      </footer>
+    </main>
   </div>
 
-  <script>
-    // ===== BACKGROUND ANIMATION START =====
-    
-    // Create a scene
-    const scene = new THREE.Scene();
-    
-    // Create a camera
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.z = 30;
-    
-    // Create a renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+<script>
+  // BACKGROUND ANIMATION START
+  // Create a scene
+  const scene = new THREE.Scene();
+  
+  // Create a camera
+  const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+  camera.position.z = 30;
+  
+  // Create a renderer
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x000000, 0);
+  document.getElementById('aurora-canvas').appendChild(renderer.domElement);
+  
+  // Handle window resize
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setClearColor(0x000015);
-    document.getElementById('background-canvas').appendChild(renderer.domElement);
+  });
+  
+  // Create Aurora Background
+  const createAuroraBackground = () => {
+    const geometry = new THREE.PlaneGeometry(200, 200);
     
-    // Handle window resize
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
+    // Create shader material
+    const material = new THREE.ShaderMaterial({
+      uniforms: {
+        time: { value: 0 },
+        resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float time;
+        uniform vec2 resolution;
+        varying vec2 vUv;
+        
+        // Simplex noise
+        vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+        vec2 mod289(vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+        vec3 permute(vec3 x) { return mod289(((x*34.0)+1.0)*x); }
+        
+        float snoise(vec2 v) {
+          const vec4 C = vec4(0.211324865405187, 0.366025403784439,
+                             -0.577350269189626, 0.024390243902439);
+          vec2 i  = floor(v + dot(v, C.yy) );
+          vec2 x0 = v -   i + dot(i, C.xx);
+          vec2 i1;
+          i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+          vec4 x12 = x0.xyxy + C.xxzz;
+          x12.xy -= i1;
+          i = mod289(i);
+          vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 ))
+            + i.x + vec3(0.0, i1.x, 1.0 ));
+          vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);
+          m = m*m ;
+          m = m*m ;
+          vec3 x = 2.0 * fract(p * C.www) - 1.0;
+          vec3 h = abs(x) - 0.5;
+          vec3 ox = floor(x + 0.5);
+          vec3 a0 = x - ox;
+          m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );
+          vec3 g;
+          g.x  = a0.x  * x0.x  + h.x  * x0.y;
+          g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+          return 130.0 * dot(m, g);
+        }
+        
+        void main() {
+          vec2 uv = vUv;
+          
+          // Create flowing aurora-like patterns
+          float flow1 = snoise(vec2(uv.x * 2.0 + time * 0.1, uv.y * 0.5 + time * 0.05));
+          float flow2 = snoise(vec2(uv.x * 1.5 + time * 0.08, uv.y * 0.8 + time * 0.03));
+          float flow3 = snoise(vec2(uv.x * 3.0 + time * 0.12, uv.y * 0.3 + time * 0.07));
+          
+          // Create streaky patterns like in the image
+          float streaks = sin((uv.x + flow1 * 0.3) * 8.0 + time * 0.2) * 0.5 + 0.5;
+          streaks *= sin((uv.y + flow2 * 0.2) * 12.0 + time * 0.15) * 0.5 + 0.5;
+          
+          // Combine flows for aurora effect
+          float aurora = (flow1 + flow2 + flow3) * 0.33 + 0.5;
+          aurora = pow(aurora, 2.0);
+          
+          // Aurora colors - teal, cyan, green like the image
+          vec3 darkTeal = vec3(0.0, 0.1, 0.15);
+          vec3 teal = vec3(0.0, 0.3, 0.4);
+          vec3 cyan = vec3(0.0, 0.6, 0.7);
+          vec3 brightCyan = vec3(0.2, 0.8, 0.9);
+          vec3 green = vec3(0.0, 0.7, 0.4);
+          
+          // Create flowing color transitions
+          vec3 color = darkTeal;
+          
+          // Add teal flows
+          float tealFlow = smoothstep(0.3, 0.7, aurora + streaks * 0.3);
+          color = mix(color, teal, tealFlow);
+          
+          // Add cyan highlights
+          float cyanFlow = smoothstep(0.6, 0.9, aurora + flow1 * 0.4);
+          color = mix(color, cyan, cyanFlow);
+          
+          // Add bright cyan streaks
+          float brightFlow = smoothstep(0.8, 1.0, streaks + aurora * 0.5);
+          color = mix(color, brightCyan, brightFlow * 0.7);
+          
+          // Add green accents
+          float greenFlow = smoothstep(0.7, 0.95, flow3 + streaks * 0.2);
+          color = mix(color, green, greenFlow * 0.5);
+          
+          // Add subtle noise texture
+          float noise = snoise(uv * 100.0) * 0.02;
+          color += noise;
+          
+          gl_FragColor = vec4(color, 1.0);
+        }
+      `,
+      side: THREE.DoubleSide
     });
     
-    // Create Aurora Background
-    const createAuroraBackground = () => {
-      const geometry = new THREE.PlaneGeometry(200, 200);
-      
-      // Create shader material
-      const material = new THREE.ShaderMaterial({
-        uniforms: {
-          time: { value: 0 },
-          resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
-        },
-        vertexShader: `
-          varying vec2 vUv;
-          void main() {
-            vUv = uv;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-          }
-        `,
-        fragmentShader: `
-          uniform float time;
-          uniform vec2 resolution;
-          varying vec2 vUv;
-          
-          // Simplex noise
-          vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-          vec2 mod289(vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-          vec3 permute(vec3 x) { return mod289(((x*34.0)+1.0)*x); }
-          
-          float snoise(vec2 v) {
-            const vec4 C = vec4(0.211324865405187, 0.366025403784439,
-                               -0.577350269189626, 0.024390243902439);
-            vec2 i  = floor(v + dot(v, C.yy) );
-            vec2 x0 = v -   i + dot(i, C.xx);
-            vec2 i1;
-            i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
-            vec4 x12 = x0.xyxy + C.xxzz;
-            x12.xy -= i1;
-            i = mod289(i);
-            vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 ))
-              + i.x + vec3(0.0, i1.x, 1.0 ));
-            vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);
-            m = m*m ;
-            m = m*m ;
-            vec3 x = 2.0 * fract(p * C.www) - 1.0;
-            vec3 h = abs(x) - 0.5;
-            vec3 ox = floor(x + 0.5);
-            vec3 a0 = x - ox;
-            m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );
-            vec3 g;
-            g.x  = a0.x  * x0.x  + h.x  * x0.y;
-            g.yz = a0.yz * x12.xz + h.yz * x12.yw;
-            return 130.0 * dot(m, g);
-          }
-          
-          void main() {
-            vec2 uv = vUv;
-            
-            // Create flowing aurora-like patterns
-            float flow1 = snoise(vec2(uv.x * 2.0 + time * 0.1, uv.y * 0.5 + time * 0.05));
-            float flow2 = snoise(vec2(uv.x * 1.5 + time * 0.08, uv.y * 0.8 + time * 0.03));
-            float flow3 = snoise(vec2(uv.x * 3.0 + time * 0.12, uv.y * 0.3 + time * 0.07));
-            
-            // Create streaky patterns like in the image
-            float streaks = sin((uv.x + flow1 * 0.3) * 8.0 + time * 0.2) * 0.5 + 0.5;
-            streaks *= sin((uv.y + flow2 * 0.2) * 12.0 + time * 0.15) * 0.5 + 0.5;
-            
-            // Combine flows for aurora effect
-            float aurora = (flow1 + flow2 + flow3) * 0.33 + 0.5;
-            aurora = pow(aurora, 2.0);
-            
-            // Aurora colors - teal, cyan, green like the image
-            vec3 darkTeal = vec3(0.0, 0.1, 0.15);
-            vec3 teal = vec3(0.0, 0.3, 0.4);
-            vec3 cyan = vec3(0.0, 0.6, 0.7);
-            vec3 brightCyan = vec3(0.2, 0.8, 0.9);
-            vec3 green = vec3(0.0, 0.7, 0.4);
-            
-            // Create flowing color transitions
-            vec3 color = darkTeal;
-            
-            // Add teal flows
-            float tealFlow = smoothstep(0.3, 0.7, aurora + streaks * 0.3);
-            color = mix(color, teal, tealFlow);
-            
-            // Add cyan highlights
-            float cyanFlow = smoothstep(0.6, 0.9, aurora + flow1 * 0.4);
-            color = mix(color, cyan, cyanFlow);
-            
-            // Add bright cyan streaks
-            float brightFlow = smoothstep(0.8, 1.0, streaks + aurora * 0.5);
-            color = mix(color, brightCyan, brightFlow * 0.7);
-            
-            // Add green accents
-            float greenFlow = smoothstep(0.7, 0.95, flow3 + streaks * 0.2);
-            color = mix(color, green, greenFlow * 0.5);
-            
-            // Add subtle noise texture
-            float noise = snoise(uv * 100.0) * 0.02;
-            color += noise;
-            
-            gl_FragColor = vec4(color, 1.0);
-          }
-        `,
-        side: THREE.DoubleSide
-      });
-      
-      const mesh = new THREE.Mesh(geometry, material);
-      mesh.position.z = -50;
-      scene.add(mesh);
-      
-      return material;
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.z = -50;
+    scene.add(mesh);
+    
+    return material;
+  };
+  
+  // Add lighting
+  const addLighting = () => {
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+    scene.add(ambientLight);
+    
+    const pointLight1 = new THREE.PointLight(0x00cccc, 0.8, 100, 2);
+    pointLight1.position.set(20, 20, 10);
+    scene.add(pointLight1);
+    
+    const pointLight2 = new THREE.PointLight(0x00ff99, 0.6, 80, 2);
+    pointLight2.position.set(-20, -10, 5);
+    scene.add(pointLight2);
+  };
+  
+  // Create and add aurora background
+  const auroraMaterial = createAuroraBackground();
+  
+  // Add lighting
+  addLighting();
+  
+  // Animation loop
+  const animate = () => {
+    requestAnimationFrame(animate);
+    
+    // Update aurora shader time
+    auroraMaterial.uniforms.time.value += 0.01;
+    
+    // Move camera slightly for subtle effect
+    const time = performance.now() * 0.001;
+    camera.position.x = Math.sin(time * 0.05) * 3;
+    camera.position.y = Math.cos(time * 0.07) * 2;
+    camera.position.z = 30;
+    camera.lookAt(0, 0, -30);
+    
+    renderer.render(scene, camera);
+  };
+  
+  // Start animation
+  animate();
+  
+  // BACKGROUND ANIMATION END
+
+  // SPA navigation using hash fragments
+  const pages = Array.from(document.querySelectorAll('.page'));
+  const navItems = Array.from(document.querySelectorAll('.nav-item'));
+
+  function showPage(id){
+    pages.forEach(p => {
+      if (p.id === id) {
+        p.classList.add('active');
+        p.setAttribute('aria-hidden', 'false');
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.target === id));
+        // focus main for accessibility
+        document.getElementById('main').focus();
+      } else {
+        p.classList.remove('active');
+        p.setAttribute('aria-hidden', 'true');
+      }
+    });
+    // update hash if not already
+    const hash = location.hash.replace(/^#\//,'') || '/';
+    if (id === 'home') {
+      history.replaceState(null, '', '#/');
+    } else {
+      history.replaceState(null, '', '#/' + id);
+    }
+  }
+
+  function navigateTo(id){
+    showPage(id);
+  }
+
+  // initial routing
+  function routeFromHash(){
+    const raw = location.hash.replace(/^#\//,'').replace('#','');
+    const id = raw === '' || raw === '/' ? 'home' : raw;
+    // fallback if unknown
+    const valid = pages.some(p => p.id === id);
+    showPage(valid ? id : 'home');
+  }
+
+  window.addEventListener('hashchange', routeFromHash);
+  routeFromHash();
+
+  // Wire nav clicks for accessibility
+  navItems.forEach(n => {
+    n.addEventListener('click', (e) => {
+      const id = n.dataset.target;
+      showPage(id);
+    });
+  });
+
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  // Theme toggle (demo: invert slightly — you can implement a full light theme)
+  const themeToggle = document.getElementById('theme-toggle');
+  themeToggle.addEventListener('click', () => {
+    const root = document.documentElement;
+    const pressed = themeToggle.getAttribute('aria-pressed') === 'true';
+    themeToggle.setAttribute('aria-pressed', String(!pressed));
+    if (!pressed) {
+      // Lighten panels for "light" mode variant (still high-contrast)
+      root.style.setProperty('--bg', 'hsl(230 18% 12%)');
+      root.style.setProperty('--panel', 'hsl(230 10% 20%)');
+      root.style.setProperty('--text-primary', 'hsl(220 20% 98%)');
+    } else {
+      // revert to original dark defaults (reload for safe revert)
+      root.style.removeProperty('--bg');
+      root.style.removeProperty('--panel');
+      root.style.removeProperty('--text-primary');
+      // note: this demo toggles only a small set of vars — expand as needed
+    }
+  });
+
+  // Contact form handler (demo; does not send network requests)
+  function submitContact(e){
+    e.preventDefault();
+    const name = document.getElementById('contact-name').value.trim();
+    const email = document.getElementById('contact-email').value.trim();
+    const subj = document.getElementById('contact-subject').value.trim();
+    const msg = document.getElementById('contact-message').value.trim();
+
+    // Very light validation
+    if (!name || !email || !msg) {
+      alert('Please fill in name, email and your message.');
+      return;
+    }
+
+    // Normally we'd post to an API — for demo, show success
+    alert('Thanks, ' + name + '! Your message was received. We will reply to ' + email + ' shortly.');
+    document.getElementById('contact-form').reset();
+  }
+
+  // Lyrics helper (demo functions)
+  function autoSuggest(){
+    const editor = document.getElementById('lyrics-editor');
+    const text = editor.value.trim();
+    if (!text) {
+      alert('Type a word or line you want rhymes for.');
+      return;
+    }
+    // very dumb rhyme suggestion (demo)
+    const words = text.split(/\s+/);
+    const last = words[words.length-1].replace(/[^\w]/g,'').toLowerCase();
+    const suggestions = simpleRhyme(last);
+    const box = document.getElementById('rhyme-box');
+    box.innerHTML = '<div style="font-weight:700;color:var(--text-primary)">Rhymes for "' + last + '"</div><div style="margin-top:8px;color:var(--text-secondary)">' + suggestions.join(' · ') + '</div>';
+  }
+
+  function simpleRhyme(w){
+    if (!w) return ['no word'];
+    // naive rhyme buckets (demo only)
+    const map = {
+      'night':['light','flight','sight','bright','fight'],
+      'love':['dove','above','shove','glove'],
+      'beat':['seat','heat','meet','street'],
+      'heart':['part','start','art','chart']
     };
-    
-    // Add lighting
-    const addLighting = () => {
-      const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
-      scene.add(ambientLight);
-      
-      const pointLight1 = new THREE.PointLight(0x00cccc, 0.8, 100, 2);
-      pointLight1.position.set(20, 20, 10);
-      scene.add(pointLight1);
-      
-      const pointLight2 = new THREE.PointLight(0x00ff99, 0.6, 80, 2);
-      pointLight2.position.set(-20, -10, 5);
-      scene.add(pointLight2);
-    };
-    
-    // Create and add aurora background
-    const auroraMaterial = createAuroraBackground();
-    
-    // Add lighting
-    addLighting();
-    
-    // Animation loop
-    const animate = () => {
-      requestAnimationFrame(animate);
-      
-      // Update aurora shader time
-      auroraMaterial.uniforms.time.value += 0.01;
-      
-      // Move camera slightly for subtle effect
-      const time = performance.now() * 0.001;
-      camera.position.x = Math.sin(time * 0.05) * 3;
-      camera.position.y = Math.cos(time * 0.07) * 2;
-      camera.position.z = 30;
-      camera.lookAt(0, 0, -30);
-      
-      renderer.render(scene, camera);
-    };
-    
-    // Start animation
-    animate();
-    
-    // ===== BACKGROUND ANIMATION END =====
-  </script>
+    return map[w] || [w + 'o','pre' + w,'post' + w,'pseudo-' + w];
+  }
+
+  function exportLyrics(){
+    const text = document.getElementById('lyrics-editor').value;
+    if (!text) { alert('Nothing to export'); return; }
+    const blob = new Blob([text], {type: 'text/plain;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'lyrics.txt';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function copyLyrics(){
+    const txt = document.getElementById('lyrics-editor').value;
+    if (!txt) { alert('Nothing to copy'); return; }
+    navigator.clipboard?.writeText(txt).then(() => {
+      alert('Copied lyrics to clipboard.');
+    }).catch(()=>{ alert('Copy failed — select & copy manually.'); });
+  }
+
+  // Album cover generator (demo)
+  const coversGrid = document.getElementById('covers-grid');
+  function generateCovers(){
+    const title = document.getElementById('cover-title').value || 'Untitled';
+    const artist = document.getElementById('cover-artist').value || 'Artist';
+    coversGrid.innerHTML = '';
+    // generate 6 placeholder covers with gradients and typographic layouts
+    for (let i=0;i<6;i++){
+      const c = document.createElement('div');
+      c.className = 'cover';
+      const grads = [
+        ['linear-gradient(135deg,#7fffd4,#7b61ff)','#E8FFFF'],
+        ['linear-gradient(135deg,#ffd86b,#ff6bcb)','#24111a'],
+        ['linear-gradient(135deg,#00d2ff,#3a00ff)','#E8FFFF'],
+        ['linear-gradient(135deg,#ff7a7a,#ffd86b)','#1a0f0f'],
+        ['linear-gradient(135deg,#8affb6,#76b3ff)','#051017'],
+        ['linear-gradient(135deg,#ffc3a0,#ff83c2)','#101018'],
+      ];
+      const g = grads[i % grads.length];
+      c.style.background = g[0];
+      c.style.color = g[1];
+      c.innerHTML = '<div style="font-weight:800;font-size:16px">' + (title.length>16?title.slice(0,16)+'…':title) + '</div><div style="font-size:12px;margin-top:6px;opacity:0.9">' + artist + ' • ' + (Math.floor(Math.random()*10)+1) + 'k streams</div>';
+      coversGrid.appendChild(c);
+    }
+  }
+
+  function applyPreset(name){
+    const t = document.getElementById('cover-title');
+    const a = document.getElementById('cover-artist');
+    if (name === 'vaporwave') {
+      t.value = 'Neon Dusk';
+      a.value = 'Pulse Division';
+    } else if (name === 'minimal') {
+      t.value = 'Blank Frame';
+      a.value = 'Paper & Tape';
+    } else if (name === 'noir') {
+      t.value = 'After Hours';
+      a.value = 'Luxe';
+    }
+    generateCovers();
+  }
+
+  // small helper: navigate with buttons
+  document.getElementById('get-started-btn').addEventListener('click', () => {
+    showPage('dj');
+  });
+
+  // Expose small API to set iframe URLs easily (for embedding your existing apps)
+  window.Nocturne = {
+    setDJSrc: function(url){ document.getElementById('dj-iframe').src = url; },
+    setSequencerSrc: function(url){ document.getElementById('seq-iframe').src = url; },
+    navigate: showPage
+  };
+
+  // small accessibility: focus main on load
+  window.addEventListener('load', () => { document.getElementById('main').focus(); });
+
+</script>
 </body>
 </html>
